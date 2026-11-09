@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permission for Optical Character Recognition (Receipt Scanning) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Permission for Voice-Activated Transaction Logging -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Permission-based reading of financial SMS alerts for auto-logging -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
+    <!-- Notifications for auto-logged transactions confirmation -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Telephony / SMS for automated credit reminders -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
+    <application
+        android:name=".SpendwiseApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Spendwise">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Spendwise">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Broadcast Receiver for Financial SMS alerts -->
+        <receiver
+            android:name=".receiver.FinancialSmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="1000">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

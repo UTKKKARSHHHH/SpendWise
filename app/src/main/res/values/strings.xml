@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Spendwise</string>
+    <string name="dashboard_title">Spendwise</string>
+    <string name="allowance_pool_title">Current Allowance Pool</string>
+    <string name="cash_in">Cash In</string>
+    <string name="cash_out">Cash Out</string>
+    <string name="voice_entry">Voice Entry</string>
+    <string name="scan_receipt">Scan Receipt</string>
+    <string name="wallets">Wallets</string>
+    <string name="analytics">Analytics</string>
+    <string name="credit_book">Credit Book</string>
+</resources>

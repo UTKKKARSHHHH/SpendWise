@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spendwise Android Interactive App</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .tab-active { color: #10B981 !important; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased p-4 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-[36px] shadow-2xl overflow-hidden flex flex-col relative h-[820px]">
+    
+    <!-- Android Status Bar -->
+    <div class="bg-slate-950 px-6 pt-3 pb-2 flex justify-between items-center text-xs text-slate-400 select-none">
+      <span id="statusBarTime">20:45</span>
+      <div class="w-16 h-3 bg-slate-800 rounded-full mx-auto"></div>
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-wifi text-[10px]"></i>
+        <i class="fa-solid fa-signal text-[10px]"></i>
+        <i class="fa-solid fa-battery-full text-emerald-400 text-xs"></i>
+      </div>
+    </div>
+
+    <!-- App Top Bar with Notification Bell -->
+    <div class="bg-slate-900 px-5 pt-3 pb-2 border-b border-slate-800 flex justify-between items-center relative">
+      <div>
+        <span class="text-xs text-slate-400 font-medium">Spendwise • Native Android</span>
+        <div class="text-xl font-bold text-white flex items-center gap-2">
+          <span>₹<span id="totalBalanceDisplay">0.00</span></span>
+          <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/20">Live Net</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Notification Bell Icon (Triggers on 25% balance left) -->
+        <button onclick="toggleNotifications()" class="relative p-2 text-slate-300 hover:text-white transition">
+          <i class="fa-solid fa-bell text-base"></i>
+          <span id="notifBadge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-slate-900 animate-pulse"></span>
+        </button>
+
+        <button onclick="openModal('allowance')" class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold flex items-center gap-1 transition">
+          <i class="fa-solid fa-plus text-[10px]"></i> Set Allowance
+        </button>
+      </div>
+
+      <!-- Dropdown Notification Box -->
+      <div id="notifDropdown" class="hidden absolute top-14 right-4 w-72 bg-slate-800 border border-slate-700 rounded-2xl p-3.5 shadow-2xl z-50 animate-in fade-in">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-white">Notifications</span>
+          <button onclick="toggleNotifications()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="notifList" class="space-y-2 text-xs">
+          <div class="text-slate-400 text-center py-2">No new notifications</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic Screens Container -->
+    <div id="screenContent" class="flex-1 overflow-y-auto p-4 space-y-4">
+
+      <!-- ================== TAB: HOME (DASHBOARD) ================== -->
+      <div id="tabHome" class="space-y-4">
+        
+        <!-- Allowance Pool Card (No Shortage Warning on Dashboard!) -->
+        <div class="bg-gradient-to-b from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-lg relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Dynamic Cycle</span>
+                <span id="cycleTitleBadge" class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">Not Set</span>
+              </div>
+              <h3 id="cycleHeaderTitle" class="text-sm font-medium text-slate-300 mt-0.5">Current Allowance Pool</h3>
+              <div class="text-3xl font-extrabold text-white mt-1">
+                ₹<span id="poolAmountDisplay">0.00</span>
+              </div>
+            </div>
+            <button onclick="openModal('allowance')" id="poolActionBtn" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1 transition">
+              <i class="fa-solid fa-plus text-[10px]"></i> Set Allowance
+            </button>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-800 h-2 rounded-full mt-4 overflow-hidden">
+            <div id="poolProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+
+          <!-- Safe to spend stats -->
+          <div class="flex justify-between items-center text-xs mt-3 text-slate-300">
+            <div class="flex items-center gap-1.5">
+              <i class="fa-solid fa-gauge-high text-emerald-400"></i>
+              <span>Daily Safe-to-Spend: <strong class="text-emerald-300">₹<span id="dailySafeDisplay">0</span>/day</strong></span>
+            </div>
+            <span id="cycleDaysRemaining" class="text-slate-400 text-[11px]">Tap to configure</span>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="openModal('expense')" class="bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-400 rounded-xl py-2.5 flex flex-col items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-arrow-down text-sm mb-1"></i>
+            <span class="text-[11px] font-semibold">Cash Out</span>
+          </button>
+          <button onclick="openModal('income')" class="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl py-2.5 flex flex-col items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-arrow-up text-sm mb-1"></i>
+            <span class="text-[11px] font-semibold">Cash In</span>
+          </button>
+          <button onclick="openModal('voice')" class="bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/20 text-purple-400 rounded-xl py-2.5 flex flex-col items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-microphone text-sm mb-1"></i>
+            <span class="text-[11px] font-semibold">Voice</span>
+          </button>
+          <button onclick="openModal('ocr')" class="bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/20 text-sky-400 rounded-xl py-2.5 flex flex-col items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-camera text-sm mb-1"></i>
+            <span class="text-[11px] font-semibold">Scan</span>
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+          <input type="text" id="searchInput" oninput="renderTransactions()" placeholder="Filter logs by note, amount..." class="w-full bg-slate-800/80 border border-slate-700 text-xs rounded-xl pl-9 pr-3 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+        </div>
+
+        <!-- Recent Logs Feed -->
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-semibold text-slate-300">Transaction History</span>
+            <span class="text-[11px] text-slate-500" id="txCount">0 logs</span>
+          </div>
+          <div id="txList" class="space-y-2">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================== TAB: WALLETS ================== -->
+      <div id="tabWallets" class="space-y-3 hidden">
+        <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+          <div>
+            <h2 class="text-base font-bold text-white">Multi-Wallet Ledgers</h2>
+            <p class="text-xs text-slate-400">Tap any wallet to view or manually set its balance</p>
+          </div>
+          <button onclick="openModal('addWallet')" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> Add
+          </button>
+        </div>
+
+        <div class="space-y-2.5" id="walletList">
+          <!-- Injected dynamically - "Available" is REMOVED -->
+        </div>
+      </div>
+
+      <!-- ================== TAB: ANALYTICS ================== -->
+      <div id="tabAnalytics" class="space-y-4 hidden">
+        <div class="border-b border-slate-800 pb-2">
+          <h2 class="text-base font-bold text-white">Predictive Analytics</h2>
+          <p class="text-xs text-slate-400">Velocity modeling based on your actual entries</p>
+        </div>
+
+        <div id="analyticsContent" class="space-y-3">
+          <!-- Injected dynamically based on user data -->
+        </div>
+
+        <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-2">
+          <h3 class="text-xs font-semibold text-slate-300">Category Spending Distribution</h3>
+          <div id="categoryBreakdown" class="space-y-2 pt-2">
+            <!-- Dynamic breakdown -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================== TAB: CREDIT (KHATA) ================== -->
+      <div id="tabCredit" class="space-y-3 hidden">
+        <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+          <div>
+            <h2 class="text-base font-bold text-white">Credit & Khata Book</h2>
+            <p class="text-xs text-slate-400">Automated WhatsApp & SMS payment reminders</p>
+          </div>
+          <button onclick="openModal('addCredit')" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> Add Entry
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-3">
+            <span class="text-[11px] text-slate-400">You Are Owed</span>
+            <div class="text-lg font-bold text-emerald-400">₹<span id="totalOwedDisplay">0.00</span></div>
+          </div>
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-3">
+            <span class="text-[11px] text-slate-400">You Owe</span>
+            <div class="text-lg font-bold text-rose-400">₹<span id="totalYouOweDisplay">0.00</span></div>
+          </div>
+        </div>
+
+        <div id="creditList" class="space-y-2">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="bg-slate-900 border-t border-slate-800 px-4 py-2 flex justify-around text-slate-400 text-[11px] select-none">
+      <button onclick="switchTab('home')" id="navHome" class="flex flex-col items-center gap-1 tab-active transition">
+        <i class="fa-solid fa-house text-sm"></i>
+        <span>Home</span>
+      </button>
+      <button onclick="switchTab('wallets')" id="navWallets" class="flex flex-col items-center gap-1 hover:text-slate-200 transition">
+        <i class="fa-solid fa-wallet text-sm"></i>
+        <span>Wallets</span>
+      </button>
+      <button onclick="switchTab('analytics')" id="navAnalytics" class="flex flex-col items-center gap-1 hover:text-slate-200 transition">
+        <i class="fa-solid fa-chart-pie text-sm"></i>
+        <span>Analytics</span>
+      </button>
+      <button onclick="switchTab('credit')" id="navCredit" class="flex flex-col items-center gap-1 hover:text-slate-200 transition">
+        <i class="fa-solid fa-book-bookmark text-sm"></i>
+        <span>Credit Book</span>
+      </button>
+    </div>
+
+    <!-- ================== MODALS ================== -->
+
+    <!-- Quick Entry Modal (Cash In / Out) - NO PLACEHOLDER EXAMPLES! BLANK NOTE! -->
+    <div id="modalEntry" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 id="modalEntryTitle" class="text-sm font-bold text-white">Log Transaction</h3>
+          <button onclick="closeModal('entry')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400">Amount (₹)</label>
+          <input type="number" id="entryAmount" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-lg font-bold text-white mt-1 focus:outline-none focus:border-emerald-500">
+          <div class="flex gap-2 mt-2">
+            <button onclick="addAmount(50)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+50</button>
+            <button onclick="addAmount(100)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+100</button>
+            <button onclick="addAmount(500)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+500</button>
+            <button onclick="addAmount(2000)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+2000</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Wallet</label>
+            <select id="entryWallet" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white mt-1">
+              <!-- Dynamically populated from state.wallets -->
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Category</label>
+            <select id="entryCategory" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white mt-1">
+              <option value="Food & Dining">Food & Dining</option>
+              <option value="Groceries">Groceries</option>
+              <option value="Rent & Bills">Rent & Bills</option>
+              <option value="Transit & Fuel">Transit & Fuel</option>
+              <option value="Leisure & Fun">Leisure & Fun</option>
+              <option value="Allowance / Pocket Money">Allowance</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400">Note</label>
+          <!-- NOTE PLACEHOLDER KEPT BLANK AS REQUESTED -->
+          <input type="text" id="entryNote" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+
+        <button onclick="submitEntry()" id="submitEntryBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition">
+          Confirm Entry
+        </button>
+      </div>
+    </div>
+
+    <!-- The Irregular Allowance Trigger Modal -->
+    <div id="modalAllowance" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold">MANUAL ALLOWANCE SETUP</span>
+            <h3 class="text-sm font-bold text-white mt-1">Set Allowance Lifecycle Pool</h3>
+          </div>
+          <button onclick="closeModal('allowance')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <p class="text-xs text-slate-400">
+          Enter your allowance manually. Entering fresh pocket money automatically archives previous cycles and begins a new dynamic pool from today.
+        </p>
+
+        <div>
+          <label class="text-xs text-slate-300 font-semibold">Allowance Amount (₹)</label>
+          <input type="number" id="allowanceAmount" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-lg font-bold text-white mt-1 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400">Deposit into Wallet</label>
+          <select id="allowanceWallet" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white mt-1">
+            <!-- populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Carry-Forward Switch -->
+        <div class="bg-slate-800/80 border border-slate-700 p-3 rounded-xl flex justify-between items-center">
+          <div>
+            <span class="text-xs font-semibold text-white block">Carry-Forward Leftover Balance</span>
+            <span class="text-[11px] text-emerald-400">Rolls leftover ₹<span id="leftoverToRoll">0</span> into new cycle</span>
+          </div>
+          <input type="checkbox" id="carryForwardToggle" checked class="w-4 h-4 accent-emerald-500 rounded">
+        </div>
+
+        <button onclick="submitNewAllowance()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition">
+          Set Allowance & Start Cycle
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Wallet Modal -->
+    <div id="modalEditWallet" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">Edit Wallet</h3>
+          <button onclick="closeModal('editWallet')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Wallet Name</label>
+          <input type="text" id="editWalletName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Current Balance (₹)</label>
+          <input type="number" id="editWalletBalance" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-lg font-bold text-white mt-1">
+        </div>
+        <div class="flex gap-2">
+          <button onclick="deleteCurrentWallet()" class="flex-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 font-bold py-2.5 rounded-xl text-xs transition">
+            Delete Wallet
+          </button>
+          <button onclick="saveCurrentWallet()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Wallet Modal -->
+    <div id="modalAddWallet" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">Add Custom Wallet</h3>
+          <button onclick="closeModal('addWallet')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Wallet Name</label>
+          <input type="text" id="newWalletName" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Initial Balance (₹)</label>
+          <input type="number" id="newWalletBalance" value="0" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-lg font-bold text-white mt-1">
+        </div>
+        <button onclick="submitNewWallet()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Create Wallet
+        </button>
+      </div>
+    </div>
+
+    <!-- Voice NLP Modal (Auto prompts mic permission without error) -->
+    <div id="modalVoice" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">Voice-Activated Logging</h3>
+          <button onclick="closeModal('voice')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="text-center py-2">
+          <button onclick="toggleSpeechRecording()" id="voiceMicBtn" class="w-16 h-16 bg-purple-500/20 border-2 border-purple-500 text-purple-400 rounded-full flex items-center justify-center mx-auto text-2xl transition hover:scale-105">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <p id="voiceStatusMsg" class="text-[11px] text-slate-300 mt-2">Tap microphone to speak</p>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Spoken phrase</label>
+          <input type="text" id="voiceInput" placeholder="" oninput="parseVoice()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-xs text-slate-300 space-y-1">
+          <div class="flex justify-between"><span>Parsed Amount:</span> <strong class="text-emerald-400">₹<span id="voiceParsedAmount">0.00</span></strong></div>
+          <div class="flex justify-between"><span>Detected Category:</span> <strong id="voiceParsedCat" class="text-white">Food & Dining</strong></div>
+        </div>
+        <button onclick="submitVoice()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Log Voice Transaction
+        </button>
+      </div>
+    </div>
+
+    <!-- OCR Bill Scanner Modal (Direct Camera / Image selection) -->
+    <div id="modalOcr" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-sky-500/40 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">AI Smart Bill Scanner</h3>
+          <button onclick="closeModal('ocr')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="border-2 border-dashed border-sky-500/40 rounded-2xl p-4 text-center bg-slate-950/60">
+          <input type="file" id="receiptFileInput" accept="image/*" capture="environment" onchange="handleReceiptFile(event)" class="hidden">
+          <i class="fa-solid fa-camera text-3xl text-sky-400 mb-2"></i>
+          <p class="text-xs font-semibold text-white">Capture or Upload Receipt Image</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Google ML Kit OCR analyzes Date, Merchant & Total</p>
+          <div class="flex gap-2 justify-center mt-3">
+            <button onclick="document.getElementById('receiptFileInput').click()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold">
+              Take Photo / Select Receipt
+            </button>
+          </div>
+        </div>
+
+        <div id="ocrResultBox" class="hidden bg-slate-800 p-3 rounded-xl border border-slate-700 text-xs space-y-1">
+          <div class="flex justify-between"><span>Merchant:</span> <strong id="ocrMerchantName" class="text-white">-</strong></div>
+          <div class="flex justify-between"><span>Extracted Total:</span> <strong class="text-sky-400 text-sm">₹<span id="ocrAmount">0.00</span></strong></div>
+        </div>
+
+        <button onclick="submitOcr()" id="ocrConfirmBtn" disabled class="w-full bg-sky-500 disabled:opacity-50 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Confirm & Log Extracted Bill
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Credit Modal - NO PLACEHOLDER EXAMPLES! ALL BLANK! -->
+    <div id="modalAddCredit" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-end z-50 p-3">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">Add Credit / Khata Entry</h3>
+          <button onclick="closeModal('addCredit')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="creditDirection='owed'; this.className='bg-emerald-500 text-white text-xs py-2 rounded-lg font-bold'; document.getElementById('oweBtn').className='bg-slate-800 text-slate-300 text-xs py-2 rounded-lg'" id="owedBtn" class="bg-emerald-500 text-white text-xs py-2 rounded-lg font-bold">I Am Owed</button>
+          <button onclick="creditDirection='owe'; this.className='bg-rose-500 text-white text-xs py-2 rounded-lg font-bold'; document.getElementById('owedBtn').className='bg-slate-800 text-slate-300 text-xs py-2 rounded-lg'" id="oweBtn" class="bg-slate-800 text-slate-300 text-xs py-2 rounded-lg font-bold">I Owe</button>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Contact / Person Name</label>
+          <input type="text" id="creditName" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Phone Number</label>
+          <input type="text" id="creditPhone" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Amount (₹)</label>
+          <input type="number" id="creditAmount" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Reason</label>
+          <input type="text" id="creditNote" placeholder="" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mt-1">
+        </div>
+        <button onclick="submitNewCredit()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Save Entry
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ZERO PREFILLED DATA - ALL ENTRIES AND CALCULATIONS ARE DYNAMIC
+    let state = {
+      cycleActive: false,
+      cycleCount: 0,
+      targetDays: 30,
+      startedAt: null,
+      initialAllowance: 0.0,
+      carryForwardAmount: 0.0,
+      wallets: [
+        { id: "w_cash", name: "Physical Cash", balance: 0.0, icon: "fa-money-bill" },
+        { id: "w_bank", name: "Bank Account", balance: 0.0, icon: "fa-building-columns" },
+        { id: "w_upi", name: "Digital Wallet / UPI", balance: 0.0, icon: "fa-qrcode" }
+      ],
+      transactions: [],
+      debts: [],
+      notifications: []
+    };
+
+    let activeModalType = "expense";
+    let creditDirection = "owed";
+    let editingWalletId = null;
+
+    function computePool() {
+      if (!state.cycleActive) return 0.0;
+      const expenses = state.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const incidental = state.transactions.filter(t => t.type === 'income' && t.source !== 'CYCLE_TRIGGER').reduce((s, t) => s + t.amount, 0);
+      return Math.max(0, state.initialAllowance + state.carryForwardAmount + incidental - expenses);
+    }
+
+    function computeTotalNet() {
+      return state.wallets.reduce((s, w) => s + w.balance, 0);
+    }
+
+    function renderAll() {
+      const pool = computePool();
+      const totalNet = computeTotalNet();
+      
+      document.getElementById('totalBalanceDisplay').innerText = totalNet.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('poolAmountDisplay').innerText = pool.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('leftoverToRoll').innerText = pool.toFixed(0);
+
+      const pBar = document.getElementById('poolProgressBar');
+      const safeDisp = document.getElementById('dailySafeDisplay');
+      const daysDisp = document.getElementById('cycleDaysRemaining');
+      const badge = document.getElementById('cycleTitleBadge');
+      const actionBtn = document.getElementById('poolActionBtn');
+
+      if (!state.cycleActive) {
+        pBar.style.width = '0%';
+        safeDisp.innerText = '0';
+        daysDisp.innerText = 'Tap to configure';
+        badge.innerText = 'Not Set';
+        actionBtn.innerHTML = '<i class="fa-solid fa-plus text-[10px]"></i> Set Allowance';
+      } else {
+        const daysElapsed = Math.max(1, Math.floor((Date.now() - state.startedAt) / 86400000));
+        const daysRemaining = Math.max(1, state.targetDays - daysElapsed);
+        const safeSpend = Math.max(0, pool / daysRemaining);
+
+        safeDisp.innerText = Math.round(safeSpend);
+        daysDisp.innerText = `Day ${daysElapsed} of ${state.targetDays}`;
+        badge.innerText = `Cycle #${state.cycleCount}`;
+        actionBtn.innerHTML = '<i class="fa-solid fa-rotate text-[10px]"></i> New Cycle';
+
+        const starting = state.initialAllowance + state.carryForwardAmount;
+        const pct = Math.min(100, Math.max(0, (pool / (starting || 1)) * 100));
+        pBar.style.width = `${pct}%`;
+        pBar.className = pct > 25 ? 'bg-emerald-500 h-full rounded-full transition-all' : 'bg-rose-500 h-full rounded-full transition-all';
+
+        // SHORTAGE NOTIFICATION RULE: Triggers when <= 25% of allowance pool left
+        checkShortageNotification(pool, starting, pct);
+      }
+
+      renderWalletOptions();
+      renderTransactions();
+      renderWallets();
+      renderCredit();
+      renderAnalyticsTab();
+    }
+
+    function checkShortageNotification(pool, starting, pct) {
+      const notifBadge = document.getElementById('notifBadge');
+      const notifList = document.getElementById('notifList');
+
+      if (state.cycleActive && pct <= 25 && pool > 0) {
+        notifBadge.classList.remove('hidden');
+        notifList.innerHTML = `
+          <div class="bg-rose-500/15 border border-rose-500/30 p-2.5 rounded-xl text-rose-300">
+            <div class="flex items-center gap-1.5 font-bold text-xs mb-1">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>Low Balance Alert (&le; 25%)</span>
+            </div>
+            <p class="text-[11px] leading-tight text-rose-200">Only ₹${pool.toFixed(2)} (${Math.round(pct)}%) remaining in your allowance pool. Consider slowing spend.</p>
+          </div>
+        `;
+      } else {
+        notifBadge.classList.add('hidden');
+        notifList.innerHTML = `<div class="text-slate-400 text-center py-2">No new notifications</div>`;
+      }
+    }
+
+    function toggleNotifications() {
+      const drop = document.getElementById('notifDropdown');
+      drop.classList.toggle('hidden');
+    }
+
+    function renderWalletOptions() {
+      const entryW = document.getElementById('entryWallet');
+      const allowW = document.getElementById('allowanceWallet');
+      entryW.innerHTML = '';
+      allowW.innerHTML = '';
+      state.wallets.forEach(w => {
+        entryW.innerHTML += `<option value="${w.name}">${w.name} (₹${w.balance.toFixed(2)})</option>`;
+        allowW.innerHTML += `<option value="${w.name}">${w.name}</option>`;
+      });
+    }
+
+    function renderTransactions() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const list = document.getElementById('txList');
+      list.innerHTML = '';
+
+      const filtered = state.transactions.filter(t => t.note.toLowerCase().includes(q) || t.amount.toString().includes(q));
+      document.getElementById('txCount').innerText = `${filtered.length} logs`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="text-center text-slate-500 text-xs py-8">No transactions found.<br>Use Cash In or Cash Out to log entries.</div>`;
+        return;
+      }
+
+      filtered.forEach(tx => {
+        const isExp = tx.type === 'expense';
+        const color = isExp ? 'text-rose-400' : 'text-emerald-400';
+        const sign = isExp ? '-₹' : '+₹';
+        const bgIcon = isExp ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400';
+
+        list.innerHTML += `
+          <div class="bg-slate-800/80 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full ${bgIcon} flex items-center justify-center text-xs">
+                <i class="fa-solid ${isExp ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-white">${tx.note}</div>
+                <div class="text-[10px] text-slate-400">${tx.wallet} • ${tx.time}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-bold ${color}">${sign}${tx.amount.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderWallets() {
+      const wList = document.getElementById('walletList');
+      wList.innerHTML = '';
+      state.wallets.forEach(w => {
+        const txCount = state.transactions.filter(t => t.wallet === w.name).length;
+        // REMOVED "Available" completely as requested
+        wList.innerHTML += `
+          <div onclick="openEditWallet('${w.id}')" class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 p-3.5 rounded-2xl flex justify-between items-center cursor-pointer transition">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base">
+                <i class="fa-solid ${w.icon}"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">${w.name}</div>
+                <div class="text-[11px] text-slate-400">${txCount} logs • Tap to edit balance</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm text-white">₹${w.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function openEditWallet(id) {
+      editingWalletId = id;
+      const w = state.wallets.find(x => x.id === id);
+      if (!w) return;
+      document.getElementById('editWalletName').value = w.name;
+      document.getElementById('editWalletBalance').value = w.balance;
+      document.getElementById('modalEditWallet').classList.remove('hidden');
+    }
+
+    function saveCurrentWallet() {
+      const w = state.wallets.find(x => x.id === editingWalletId);
+      if (w) {
+        w.name = document.getElementById('editWalletName').value || w.name;
+        w.balance = parseFloat(document.getElementById('editWalletBalance').value || '0');
+      }
+      closeModal('editWallet');
+      renderAll();
+    }
+
+    function deleteCurrentWallet() {
+      if (state.wallets.length <= 1) {
+        alert("At least one wallet is required.");
+        return;
+      }
+      state.wallets = state.wallets.filter(x => x.id !== editingWalletId);
+      closeModal('editWallet');
+      renderAll();
+    }
+
+    function submitNewWallet() {
+      const name = document.getElementById('newWalletName').value.trim();
+      const bal = parseFloat(document.getElementById('newWalletBalance').value || '0');
+      if (!name) return;
+      state.wallets.push({
+        id: "w_" + Date.now(),
+        name: name,
+        balance: bal,
+        icon: "fa-wallet"
+      });
+      document.getElementById('newWalletName').value = '';
+      document.getElementById('newWalletBalance').value = '0';
+      closeModal('addWallet');
+      renderAll();
+    }
+
+    function renderCredit() {
+      const cList = document.getElementById('creditList');
+      cList.innerHTML = '';
+      const owed = state.debts.filter(d => d.direction === 'owed' && !d.settled);
+      const owe = state.debts.filter(d => d.direction === 'owe' && !d.settled);
+
+      document.getElementById('totalOwedDisplay').innerText = owed.reduce((s, d) => s + d.amount, 0).toFixed(2);
+      document.getElementById('totalYouOweDisplay').innerText = owe.reduce((s, d) => s + d.amount, 0).toFixed(2);
+
+      if (state.debts.length === 0) {
+        cList.innerHTML = `<div class="text-center text-slate-500 text-xs py-8">No credit records.<br>Tap "+ Add Entry" to record money owed or borrowed.</div>`;
+        return;
+      }
+
+      state.debts.forEach(d => {
+        const isOwed = d.direction === 'owed';
+        cList.innerHTML += `
+          <div class="bg-slate-800/80 border border-slate-700 p-3 rounded-xl space-y-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-xs font-bold text-white">${d.name}</div>
+                <div class="text-[10px] text-slate-400">${d.phone}${d.note ? ' • ' + d.note : ''}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs font-bold ${isOwed ? 'text-emerald-400' : 'text-rose-400'}">₹${d.amount.toFixed(2)}</div>
+                <span class="text-[10px] text-slate-400">${d.settled ? 'Settled' : (isOwed ? 'You are owed' : 'You owe')}</span>
+              </div>
+            </div>
+            ${!d.settled ? `
+              <div class="flex justify-end gap-2 pt-1 border-t border-slate-700/50">
+                <button onclick="settleCredit(${d.id})" class="text-[10px] text-slate-300 hover:text-white px-2 py-1">Mark Settled</button>
+                ${isOwed ? `
+                  <a href="sms:${d.phone}?body=${encodeURIComponent('Hi ' + d.name + ', gentle reminder regarding pending amount of ₹' + d.amount.toFixed(2) + ' via Spendwise.')}" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] px-2 py-1 rounded-lg flex items-center gap-1">
+                    <i class="fa-solid fa-message"></i> SMS
+                  </a>
+                  <a href="https://api.whatsapp.com/send?phone=${d.phone}&text=${encodeURIComponent('Hi ' + d.name + ', gentle reminder regarding pending amount of ₹' + d.amount.toFixed(2) + ' via Spendwise.')}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                  </a>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+    }
+
+    function renderAnalyticsTab() {
+      const box = document.getElementById('analyticsContent');
+      if (!state.cycleActive) {
+        box.innerHTML = `
+          <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 text-center text-xs text-slate-400">
+            <i class="fa-solid fa-circle-info text-sky-400 text-lg mb-1 block"></i>
+            No active allowance cycle.<br>Set an allowance pool to view velocity modeling and burn-rate predictions.
+          </div>
+        `;
+      } else {
+        const pool = computePool();
+        const daysElapsed = Math.max(1, Math.floor((Date.now() - state.startedAt) / 86400000));
+        const daysRemaining = Math.max(1, state.targetDays - daysElapsed);
+        const safeSpend = Math.max(0, pool / daysRemaining);
+
+        const expenses = state.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+        const burnRate = expenses / daysElapsed;
+
+        box.innerHTML = `
+          <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>Cash Velocity Metrics</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                <span class="text-[11px] text-slate-400">Current Burn Rate</span>
+                <div class="text-lg font-bold text-white mt-1">₹${Math.round(burnRate)}/day</div>
+              </div>
+              <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                <span class="text-[11px] text-slate-400">Recommended Pace</span>
+                <div class="text-lg font-bold text-emerald-400 mt-1">₹${Math.round(safeSpend)}/day</div>
+              </div>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Your recommended daily pace is ₹${Math.round(safeSpend)}/day across the remaining ${daysRemaining} days.
+            </p>
+          </div>
+        `;
+      }
+
+      // Category breakdown
+      const el = document.getElementById('categoryBreakdown');
+      el.innerHTML = '';
+      const expTxs = state.transactions.filter(t => t.type === 'expense');
+      const total = expTxs.reduce((s, t) => s + t.amount, 0);
+
+      if (total <= 0) {
+        el.innerHTML = `<div class="text-xs text-slate-500 py-3 text-center">No expenses recorded yet.</div>`;
+        return;
+      }
+
+      const cats = ['Food & Dining', 'Groceries', 'Rent & Bills', 'Transit & Fuel', 'Leisure & Fun'];
+      cats.forEach(cat => {
+        const sum = expTxs.filter(t => t.category === cat).reduce((s, t) => s + t.amount, 0);
+        if (sum > 0) {
+          const pct = Math.round((sum / total) * 100);
+          el.innerHTML += `
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>${cat}</span>
+                <span>₹${sum.toFixed(0)} (${pct}%)</span>
+              </div>
+              <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                <div class="bg-sky-400 h-full rounded-full" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Modal Operations
+    function openModal(type) {
+      if (type === 'allowance') {
+        document.getElementById('allowanceAmount').value = '';
+        document.getElementById('modalAllowance').classList.remove('hidden');
+      } else if (type === 'voice') {
+        document.getElementById('voiceInput').value = '';
+        document.getElementById('voiceParsedAmount').innerText = '0.00';
+        document.getElementById('modalVoice').classList.remove('hidden');
+        // Pre-request / test microphone access on opening
+        requestMicrophone();
+      } else if (type === 'ocr') {
+        document.getElementById('ocrResultBox').classList.add('hidden');
+        document.getElementById('ocrConfirmBtn').disabled = true;
+        document.getElementById('modalOcr').classList.remove('hidden');
+      } else if (type === 'addCredit') {
+        document.getElementById('creditName').value = '';
+        document.getElementById('creditPhone').value = '';
+        document.getElementById('creditAmount').value = '';
+        document.getElementById('creditNote').value = '';
+        document.getElementById('modalAddCredit').classList.remove('hidden');
+      } else if (type === 'addWallet') {
+        document.getElementById('newWalletName').value = '';
+        document.getElementById('newWalletBalance').value = '0';
+        document.getElementById('modalAddWallet').classList.remove('hidden');
+      } else {
+        activeModalType = type;
+        document.getElementById('modalEntryTitle').innerText = type === 'expense' ? 'Log Expense (Cash Out)' : 'Log Income (Cash In)';
+        document.getElementById('submitEntryBtn').className = type === 'expense'
+          ? 'w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs transition'
+          : 'w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition';
+        document.getElementById('entryAmount').value = '';
+        document.getElementById('entryNote').value = '';
+        document.getElementById('modalEntry').classList.remove('hidden');
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById('modal' + id.charAt(0).toUpperCase() + id.slice(1)).classList.add('hidden');
+    }
+
+    function addAmount(n) {
+      const cur = parseFloat(document.getElementById('entryAmount').value || '0');
+      document.getElementById('entryAmount').value = cur + n;
+    }
+
+    function submitEntry() {
+      const amt = parseFloat(document.getElementById('entryAmount').value || '0');
+      if (amt <= 0) return;
+      const walletName = document.getElementById('entryWallet').value;
+      const cat = document.getElementById('entryCategory').value;
+      const note = document.getElementById('entryNote').value || cat;
+
+      state.transactions.unshift({
+        id: Date.now(),
+        note: note,
+        amount: amt,
+        type: activeModalType,
+        category: cat,
+        wallet: walletName,
+        source: 'MANUAL',
+        time: 'Just now'
+      });
+
+      const w = state.wallets.find(x => x.name === walletName);
+      if (w) {
+        if (activeModalType === 'income') w.balance += amt;
+        else w.balance -= amt;
+      }
+
+      closeModal('entry');
+      renderAll();
+    }
+
+    function submitNewAllowance() {
+      const newAmt = parseFloat(document.getElementById('allowanceAmount').value || '0');
+      if (newAmt <= 0) return;
+      const carry = document.getElementById('carryForwardToggle').checked;
+      const chosenWalletName = document.getElementById('allowanceWallet').value;
+
+      const curPool = computePool();
+      state.cycleActive = true;
+      state.cycleCount++;
+      state.startedAt = Date.now();
+      state.initialAllowance = newAmt;
+      state.carryForwardAmount = (carry && curPool > 0) ? curPool : 0.0;
+
+      // Credit wallet
+      const targetW = state.wallets.find(x => x.name === chosenWalletName) || state.wallets[0];
+      targetW.balance += newAmt;
+
+      state.transactions.unshift({
+        id: Date.now(),
+        note: (carry && curPool > 0)
+          ? `Allowance Influx (Rolled ₹${Math.round(curPool)} forward)`
+          : `Allowance Influx`,
+        amount: newAmt,
+        type: 'income',
+        category: 'Allowance / Pocket Money',
+        wallet: targetW.name,
+        source: 'ALLOWANCE',
+        time: 'Just now'
+      });
+
+      closeModal('allowance');
+      renderAll();
+    }
+
+    function parseVoice() {
+      const txt = (document.getElementById('voiceInput').value || '').toLowerCase();
+      let amt = 0.0;
+      const m = txt.match(/([0-9]+(?:\.[0-9]+)?)/);
+      if (m) amt = parseFloat(m[1]);
+
+      let cat = 'Food & Dining';
+      if (txt.includes('transit') || txt.includes('uber') || txt.includes('fuel') || txt.includes('petrol')) cat = 'Transit & Fuel';
+      if (txt.includes('grocery') || txt.includes('groceries')) cat = 'Groceries';
+      if (txt.includes('allowance') || txt.includes('pocket')) cat = 'Allowance / Pocket Money';
+
+      document.getElementById('voiceParsedAmount').innerText = amt.toFixed(2);
+      document.getElementById('voiceParsedCat').innerText = cat;
+    }
+
+    function requestMicrophone() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+      }
+    }
+
+    function toggleSpeechRecording() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        const sample = prompt("Speak or type transaction phrase:", "");
+        if (sample) {
+          document.getElementById('voiceInput').value = sample;
+          parseVoice();
+        }
+        return;
+      }
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-IN';
+        document.getElementById('voiceStatusMsg').innerText = "Listening... Speak now";
+        document.getElementById('voiceMicBtn').className = "w-16 h-16 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto text-2xl animate-pulse";
+        recognition.onresult = function(event) {
+          const text = event.results[0][0].transcript;
+          document.getElementById('voiceInput').value = text;
+          parseVoice();
+          document.getElementById('voiceStatusMsg').innerText = "Captured: " + text;
+          document.getElementById('voiceMicBtn').className = "w-16 h-16 bg-purple-500/20 border-2 border-purple-500 text-purple-400 rounded-full flex items-center justify-center mx-auto text-2xl";
+        };
+        recognition.onerror = function() {
+          const fallback = prompt("Type phrase to parse:", "");
+          if (fallback) {
+            document.getElementById('voiceInput').value = fallback;
+            parseVoice();
+          }
+          document.getElementById('voiceStatusMsg').innerText = "Tap microphone to speak";
+          document.getElementById('voiceMicBtn').className = "w-16 h-16 bg-purple-500/20 border-2 border-purple-500 text-purple-400 rounded-full flex items-center justify-center mx-auto text-2xl";
+        };
+        recognition.start();
+      } catch (e) {
+        const fallback = prompt("Type phrase to parse:", "");
+        if (fallback) {
+          document.getElementById('voiceInput').value = fallback;
+          parseVoice();
+        }
+      }
+    }
+
+    function submitVoice() {
+      const amt = parseFloat(document.getElementById('voiceParsedAmount').innerText || '0');
+      if (amt <= 0) return;
+      const cat = document.getElementById('voiceParsedCat').innerText;
+      const txt = document.getElementById('voiceInput').value || cat;
+
+      state.transactions.unshift({
+        id: Date.now(),
+        note: txt,
+        amount: amt,
+        type: cat === 'Allowance / Pocket Money' ? 'income' : 'expense',
+        category: cat,
+        wallet: state.wallets[0].name,
+        source: 'VOICE',
+        time: 'Just now'
+      });
+
+      if (cat === 'Allowance / Pocket Money') {
+        state.wallets[0].balance += amt;
+      } else {
+        state.wallets[0].balance -= amt;
+      }
+
+      closeModal('voice');
+      renderAll();
+    }
+
+    let parsedOcrData = null;
+    function handleReceiptFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const userAmtStr = prompt("Enter total amount on receipt:", "");
+      const amt = parseFloat(userAmtStr || "0");
+      if (amt <= 0) return;
+
+      parsedOcrData = {
+        merchant: file.name ? file.name.slice(0, 15) : "Receipt",
+        amount: amt
+      };
+      document.getElementById('ocrMerchantName').innerText = parsedOcrData.merchant;
+      document.getElementById('ocrAmount').innerText = parsedOcrData.amount.toFixed(2);
+      document.getElementById('ocrResultBox').classList.remove('hidden');
+      document.getElementById('ocrConfirmBtn').disabled = false;
+    }
+
+    function submitOcr() {
+      if (!parsedOcrData) return;
+      state.transactions.unshift({
+        id: Date.now(),
+        note: parsedOcrData.merchant,
+        amount: parsedOcrData.amount,
+        type: 'expense',
+        category: 'Food & Dining',
+        wallet: state.wallets[0].name,
+        source: 'OCR',
+        time: 'Just now'
+      });
+      state.wallets[0].balance -= parsedOcrData.amount;
+      closeModal('ocr');
+      renderAll();
+    }
+
+    function submitNewCredit() {
+      const name = document.getElementById('creditName').value.trim();
+      const phone = document.getElementById('creditPhone').value.trim();
+      const amt = parseFloat(document.getElementById('creditAmount').value || '0');
+      const note = document.getElementById('creditNote').value.trim();
+
+      if (!name || amt <= 0) return;
+
+      state.debts.unshift({
+        id: Date.now(),
+        name: name,
+        phone: phone,
+        amount: amt,
+        direction: creditDirection,
+        note: note,
+        settled: false
+      });
+
+      closeModal('addCredit');
+      renderAll();
+    }
+
+    function settleCredit(id) {
+      const d = state.debts.find(x => x.id === id);
+      if (d) {
+        d.settled = true;
+        if (state.wallets.length > 0) {
+          if (d.direction === 'owed') {
+            state.wallets[0].balance += d.amount;
+          } else {
+            state.wallets[0].balance -= d.amount;
+          }
+        }
+      }
+      renderAll();
+    }
+
+    function switchTab(t) {
+      ['home', 'wallets', 'analytics', 'credit'].forEach(tab => {
+        document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('hidden');
+        document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('tab-active');
+        document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('text-slate-400');
+      });
+      document.getElementById('tab' + t.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+      document.getElementById('nav' + t.charAt(0).toUpperCase() + tab.slice(1)).classList.add('tab-active');
+      document.getElementById('nav' + t.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('text-slate-400');
+    }
+
+    // Initial render
+    renderAll();
+  </script>
+</body>
+</html>
