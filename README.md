@@ -1,56 +1,63 @@
-# SpendWise 💸
+# SpendWise
 
-> **"Save For Your Future Plans !!"**  
-> *Designed and Maintained by Utkarsh Raj*
+"Save For Your Future Plans !!"  
+Designed and maintained by Utkarsh Raj.
 
-SpendWise is a next-generation Android financial tracking application built with **Jetpack Compose**, **Kotlin Coroutines & Flow**, **Room Database**, and native AI-powered tools. It provides velocity modeling, predictive burn-rate analytics, multi-wallet ledger management, credit books (Khata), voice-activated logging, and OCR receipt scanning.
-
----
-
-## ✨ Features
-
-- 🎯 **Predictive Analytics & Burn-Rate Forecasting**: Real-time cash velocity calculation, recommended daily spending pace, and remaining cycle runway.
-- 💼 **Multi-Wallet Ledgers**: Manage cash, bank accounts, UPI, and digital wallets without forced presets.
-- 📖 **Credit Book (Khata Management)**: Track lent and borrowed funds with single-tap WhatsApp / SMS reminders and balance settlements.
-- 🎙️ **Voice-Activated Transaction Logging**: Speech-to-Text NLP parsing for hands-free expense entry.
-- 📸 **Receipt OCR Scanner**: Camera-based receipt scanner that detects amounts, dates, and categories.
-- 🔔 **Smart Shortage Alerts**: Silent & distraction-free notifications that only alert when remaining allowance drops below 25%.
-- 🌓 **Dynamic Theme Engine**: Velto-inspired Light and Dark themes with signature forest green and electric lime accents.
-- ☁️ **Cloud Sync & User Management**: User profile, cloud snapshot backups, and restore workflows.
+SpendWise is a personal finance and expense tracking Android app built entirely with Jetpack Compose and Kotlin. It focuses on cycle-based budget forecasting, multi-wallet ledger tracking, voice logging, and quick credit bookkeeping (Khata) with minimal manual overhead.
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## Key Features
 
-- **UI**: 100% Jetpack Compose (Material3)
-- **Language**: Kotlin 1.9+
-- **Architecture**: Clean Architecture + MVVM + Unidirectional Data Flow (StateFlow)
-- **Local Storage**: Room Persistence Library (SQLite)
-- **Camera & OCR**: CameraX + Google ML Kit Text Recognition
-- **Audio / Voice**: Android SpeechRecognizer API
-- **Build System**: Gradle Kotlin DSL (`build.gradle.kts`)
+- **Predictive Allowance & Burn Rate**: Calculates your daily safe-to-spend allowance and cash velocity based on your active cycle balance.
+- **Multi-Wallet Ledgers**: Set up and manage balances across physical cash, bank accounts, and digital wallets/UPI without hardcoded defaults.
+- **Credit Book (Khata)**: Keep track of money lent or borrowed, settle dues, and send reminders directly through WhatsApp or SMS.
+- **Voice-Activated Logging**: Speak an expense naturally (e.g. "200 for groceries") and have it parsed into an entry automatically.
+- **Receipt Scanner (OCR)**: Snap photos of physical bills to extract amounts and log them on the spot.
+- **Shortage Alerts**: Keeps notifications silent and unobtrusive, alerting only when remaining pool drops to 25% or lower.
+- **Light & Dark Theme**: Built-in support for both light and dark mode with high-contrast palette.
+- **Cloud Backup & Session Management**: Save snapshots of local data and restore them when needed.
 
 ---
 
-## 🚀 Getting Started
+## Tech Stack
 
-### Prerequisites
-- Android Studio Ladybug / Iguana or newer
+- **Framework**: Android SDK (minSdk 26, targetSdk 34)
+- **UI**: Jetpack Compose with Material 3
+- **Language**: Kotlin
+- **Architecture**: MVVM with Kotlin Coroutines and StateFlow
+- **Database**: Room (SQLite)
+- **OCR**: Google ML Kit Text Recognition
+- **Audio**: Android SpeechRecognizer
+- **Build Tool**: Gradle (Kotlin DSL)
+
+---
+
+## Setup and Installation
+
+### Requirements
+- Android Studio (Ladybug, Iguana, or later)
 - JDK 17
-- Android SDK 34 (Android 14) minimum SDK 26 (Android 8.0)
+- Android device or emulator running Android 8.0 (API 26) or higher
 
-### Build APK
+### Building the Project
+Clone the repository:
+```bash
+git clone https://github.com/UTKKKARSHHHH/SpendWise.git
+cd SpendWise
+```
+
+Build the debug APK:
 ```bash
 ./gradlew assembleDebug
 ```
-The compiled APK will be generated at:
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
+The output file is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+
+You can also download prebuilt APK binaries directly from the Releases tab on GitHub.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Utkarsh Raj**  
-*Designer & Maintainer*
+Designer and Maintainer
